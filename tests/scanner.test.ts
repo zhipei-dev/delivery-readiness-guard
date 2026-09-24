@@ -13,6 +13,12 @@ const tempWorkspace = () => mkdtemp(path.join(tmpdir(), 'drg-'));
 async function dependencyResult(workspace: string): Promise<string | undefined> {
   return (await scan(workspace)).checks.find((check) => check.id === 'dependency_lock')?.result;
 }
+async function guidanceResult(markdown: string, id: 'setup_guidance' | 'run_guidance' | 'test_guidance'): Promise<string | undefined> {
+  const workspace = await tempWorkspace();
+  await writeFile(path.join(workspace, '.delivery-readiness.yml'), `version: 1\nrequired_checks: [${id}]\nrecommended_checks: []\n`);
+  await writeFile(path.join(workspace, 'README.md'), markdown);
+  return (await scan(workspace)).checks.find((check) => check.id === id)?.result;
+}
 
 test('ready fixture is READY', async () => assert.equal((await scan(fixture('ready'))).status, 'READY'));
 test('not-ready fixture is NOT_READY', async () => assert.equal((await scan(fixture('not-ready'))).status, 'NOT_READY'));
@@ -86,6 +92,38 @@ test('guidance command evidence must stay in its own section', async () => {
   assert.equal((await scan(workspace)).status, 'NOT_READY');
   await writeFile(path.join(workspace, 'README.md'), '# Setup\n```sh\nnpm install\n```\n\n# Other\nNotes.\n');
   assert.equal((await scan(workspace)).status, 'READY');
+});
+test('Node Quick start recognizes setup and run commands', async () => {
+  const markdown = '# Quick start\n```sh\nnpm ci\nnpm run dev\n```\n';
+  assert.equal(await guidanceResult(markdown, 'setup_guidance'), 'PASS');
+  assert.equal(await guidanceResult(markdown, 'run_guidance'), 'PASS');
+});
+test('Validation recognizes a Node test command', async () => {
+  assert.equal(await guidanceResult('# Validation\n```sh\nnpm test\n```\n', 'test_guidance'), 'PASS');
+});
+test('.NET Quick start recognizes restore and test commands', async () => {
+  const markdown = '# Quick start\n```sh\ndotnet restore\ndotnet test\n```\n';
+  assert.equal(await guidanceResult(markdown, 'setup_guidance'), 'PASS');
+  assert.equal(await guidanceResult(markdown, 'test_guidance'), 'PASS');
+});
+test('Maven Quick start recognizes verify as setup and test evidence plus run', async () => {
+  const markdown = '# Quick start\n```sh\n./mvnw -B verify\n./mvnw spring-boot:run\n```\n';
+  assert.equal(await guidanceResult(markdown, 'setup_guidance'), 'PASS');
+  assert.equal(await guidanceResult(markdown, 'run_guidance'), 'PASS');
+  assert.equal(await guidanceResult(markdown, 'test_guidance'), 'PASS');
+});
+test('Browser validation recognizes end-to-end test evidence', async () => {
+  assert.equal(await guidanceResult('# Browser validation\n```sh\nnpm run test:e2e\n```\n', 'test_guidance'), 'PASS');
+});
+test('Quick start without a run command fails run guidance', async () => {
+  assert.equal(await guidanceResult('# Quick start\n```sh\nnpm ci\n```\n', 'run_guidance'), 'FAIL');
+});
+test('Validation without a test command fails test guidance', async () => {
+  assert.equal(await guidanceResult('# Validation\n```sh\nnpm ci\n```\n', 'test_guidance'), 'FAIL');
+});
+test('guidance evidence does not cross Markdown sections', async () => {
+  const markdown = '# Quick start\nInstall dependencies.\n\n# Validation\n```sh\nnpm ci\n```\n';
+  assert.equal(await guidanceResult(markdown, 'setup_guidance'), 'FAIL');
 });
 test('Node lock evidence passes', async () => {
   const workspace = await tempWorkspace();
