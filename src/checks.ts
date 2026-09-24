@@ -8,14 +8,27 @@ const standard: Partial<Record<CheckId, RegExp>> = {
   limitations_guidance: /(^|\/)(limitations|known-issues)\.md$/i,
 };
 const sectionWords: Partial<Record<CheckId, string[]>> = {
-  setup_guidance: ['setup', 'installation', 'getting started'], run_guidance: ['run', 'usage', 'development'],
-  test_guidance: ['test', 'testing'], environment_guidance: ['environment', 'configuration', 'secrets'],
+  setup_guidance: ['setup', 'installation', 'getting started', 'quick start', 'quickstart'],
+  run_guidance: ['run', 'usage', 'development', 'quick start', 'quickstart'],
+  test_guidance: ['test', 'testing', 'validation', 'verification', 'browser validation', 'verified local evidence', 'quick start', 'quickstart'],
+  environment_guidance: ['environment', 'configuration', 'secrets'],
   deployment_guidance: ['deployment', 'hosting', 'release', 'handoff'], security_guidance: ['security'],
   support_guidance: ['support', 'contact', 'contributing'], architecture_guidance: ['architecture', 'design'],
   limitations_guidance: ['limitations', 'known issues', 'caveats'],
 };
-const commandPattern = /```[^`]*(?:npm|pnpm|yarn|python|pytest|dotnet|mvn|gradle|go\s+(?:run|test)|cargo\s+(?:run|test)|make|docker)[^`]*```/is;
+const commandPatterns: Partial<Record<CheckId, RegExp>> = {
+  setup_guidance: /(?:^|\n)\s*(?:[$#]\s*)?(?:npm\s+(?:ci|install)\b|pnpm\s+install\b|yarn\s+install\b|(?:pip|pipx)\s+install\b|poetry\s+(?:install|sync)\b|pdm\s+(?:install|sync)\b|uv\s+(?:sync|pip\s+install)\b|dotnet\s+restore\b|(?:mvn|\.\/mvnw)(?:\s+[-\w.=]+)*\s+(?:dependency:\S+|verify)\b|(?:gradle|\.\/gradlew)(?:\s+[-\w.=]+)*\s+(?:build|dependencies)\b|cargo\s+(?:fetch|build)\b|go\s+mod\s+(?:download|tidy)\b|docker\s+compose\s+build\b)/i,
+  run_guidance: /(?:^|\n)\s*(?:[$#]\s*)?(?:npm\s+run\s+(?:dev|start|serve)\b|node\s+\S+|python\s+\S+|uvicorn\s+\S+|flask\s+run\b|dotnet\s+run\b|(?:mvn|\.\/mvnw)(?:\s+[-\w.=]+)*\s+spring-boot:run\b|(?:gradle|\.\/gradlew)(?:\s+[-\w.=]+)*\s+(?:bootRun|run)\b|go\s+run\b|cargo\s+run\b|docker\s+compose\s+up\b)/i,
+  test_guidance: /(?:^|\n)\s*(?:[$#]\s*)?(?:npm\s+test\b|npm\s+run\s+test[\w:-]*\b|npx\s+playwright\s+test\b|pytest\b|dotnet\s+test\b|(?:mvn|\.\/mvnw)(?:\s+[-\w.=]+)*\s+(?:test|verify)\b|(?:gradle|\.\/gradlew)(?:\s+[-\w.=]+)*\s+(?:test|check)\b|go\s+test\b|cargo\s+test\b)/i,
+};
 const commandGuidance = new Set<CheckId>(['setup_guidance', 'run_guidance', 'test_guidance']);
+
+function hasCommandEvidence(body: string, id: CheckId): boolean {
+  const pattern = commandPatterns[id];
+  if (!pattern) return false;
+  const blocks = body.match(/```[^`]*```/gs) ?? [];
+  return blocks.some((block) => pattern.test(block));
+}
 
 function sections(text: string): Array<{ heading: string; body: string }> {
   const lines = text.split(/\r?\n/);
@@ -43,7 +56,7 @@ async function hasSection(fs: SafeFs, id: CheckId): Promise<string | undefined> 
     if (!text) continue;
     for (const section of sections(text)) {
       if (!words.some((word) => section.heading.includes(word))) continue;
-      if (!commandGuidance.has(id) || commandPattern.test(section.body)) {
+      if (!commandGuidance.has(id) || hasCommandEvidence(section.body, id)) {
         return `${file} (${words.join('/')} heading${commandGuidance.has(id) ? ' + command evidence' : ''})`;
       }
     }
