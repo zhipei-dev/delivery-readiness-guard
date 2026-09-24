@@ -57,6 +57,19 @@ Evidence is intentionally conservative and filename/heading based. v1.0.1 expand
 
 The action scans only `GITHUB_WORKSPACE`, does not follow symlinks, does not execute repository code or shell commands, limits traversal and text reads, and never uploads repository content. Details are in [Security and scope](docs/SECURITY_AND_SCOPE.md).
 
+## External feedback
+
+Real repository evidence drives changes to the Action. If you use `@v1`, please open an Issue when you encounter:
+
+- a **false positive**: valid setup/run/test/deployment evidence is reported missing
+- a **false negative**: the Action reports readiness even though important handoff evidence is absent
+- an installation/runtime bug
+- a narrowly scoped deterministic feature request
+
+The issue templates ask for a minimal public or redacted reproduction. Do not include secrets, credentials, private customer data, or proprietary repository content.
+
+[Open an issue](https://github.com/zhipei-dev/delivery-readiness-guard/issues/new/choose).
+
 ## Roadmap
 
 Future releases may refine deterministic ecosystem evidence and documentation heuristics while retaining the action's local, auditable scope.
