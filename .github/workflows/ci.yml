@@ -1,0 +1,25 @@
+name: CI
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: git diff --exit-code -- dist/
+      - id: smoke
+        uses: ./
+        with:
+          mode: report
+          report-path: delivery-readiness-report.json
+      - run: |
+          test -n '${{ steps.smoke.outputs.status }}'
+          test -f delivery-readiness-report.json

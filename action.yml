@@ -1,0 +1,30 @@
+name: Delivery Readiness Guard
+description: Deterministically check handoff evidence for clients, developers, and operations teams.
+branding:
+  icon: check-circle
+  color: green
+inputs:
+  mode:
+    description: report never fails for readiness; enforce fails only when required checks fail.
+    required: false
+    default: report
+  config-path:
+    description: Repository-relative YAML configuration path.
+    required: false
+    default: .delivery-readiness.yml
+  report-path:
+    description: Workspace-relative JSON report path.
+    required: false
+    default: delivery-readiness-report.json
+outputs:
+  status:
+    description: READY, REVIEW_REQUIRED, or NOT_READY.
+  required_failures:
+    description: Number of failed required checks.
+  recommended_failures:
+    description: Number of failed recommended checks.
+  report_path:
+    description: Absolute path of the generated report.
+runs:
+  using: node24
+  main: dist/index.js
