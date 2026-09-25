@@ -40120,23 +40120,31 @@ async function workflowPermissionsCheck(fs) {
         const workflow = await parsedWorkflow(fs, file);
         if (!workflow)
             return { result: 'FAIL', evidence: `${file}: unreadable or invalid workflow YAML` };
-        if (Object.prototype.hasOwnProperty.call(workflow, 'permissions')) {
+        const hasTopLevelPermissions = Object.prototype.hasOwnProperty.call(workflow, 'permissions');
+        if (hasTopLevelPermissions) {
             const boundary = permissionBoundary(workflow.permissions);
             if (boundary === 'WRITE_ALL')
                 return { result: 'FAIL', evidence: `${file}: top-level permissions uses write-all` };
             if (boundary !== 'EXPLICIT')
                 return { result: 'FAIL', evidence: `${file}: invalid explicit permissions declaration` };
-            continue;
         }
         const jobs = mapping(workflow.jobs);
         if (!jobs || Object.keys(jobs).length === 0) {
-            return { result: 'FAIL', evidence: `${file}: no top-level permissions and no jobs to define job-level permissions` };
+            if (!hasTopLevelPermissions) {
+                return { result: 'FAIL', evidence: `${file}: no top-level permissions and no jobs to define job-level permissions` };
+            }
+            continue;
         }
         for (const [jobName, rawJob] of Object.entries(jobs)) {
             const job = mapping(rawJob);
-            if (!job || !Object.prototype.hasOwnProperty.call(job, 'permissions')) {
+            if (!job)
+                return { result: 'FAIL', evidence: `${file}: job ${jobName} is not a mapping` };
+            const hasJobPermissions = Object.prototype.hasOwnProperty.call(job, 'permissions');
+            if (!hasTopLevelPermissions && !hasJobPermissions) {
                 return { result: 'FAIL', evidence: `${file}: job ${jobName} has no explicit permissions` };
             }
+            if (!hasJobPermissions)
+                continue;
             const boundary = permissionBoundary(job.permissions);
             if (boundary === 'WRITE_ALL')
                 return { result: 'FAIL', evidence: `${file}: job ${jobName} uses write-all` };
