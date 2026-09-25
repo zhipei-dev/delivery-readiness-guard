@@ -51,7 +51,7 @@ Unknown IDs and duplicated placement are errors. An empty `required_checks` is a
 
 ## Limitations and false positives
 
-Evidence is intentionally conservative and filename/heading based. v1.0.1 expands deterministic compatibility for common setup, run, and test headings while still requiring matching command evidence in the same section. It cannot determine whether a command is correct, deployment access works, documentation is current, or tests pass. Review the report rather than treating it as a guarantee.
+Evidence is intentionally conservative and filename/heading based. v1.1.0 adds opt-in GitHub Actions permission and immutable-reference checks without changing default readiness scoring; the existing setup/run/test guidance rules remain deterministic and require matching command evidence in the same section. It cannot determine whether a command is correct, deployment access works, documentation is current, or tests pass. Review the report rather than treating it as a guarantee.
 
 ## Security and privacy
 
