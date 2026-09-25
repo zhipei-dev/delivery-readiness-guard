@@ -4,7 +4,8 @@ export type Status = 'READY' | 'REVIEW_REQUIRED' | 'NOT_READY';
 export type CheckId =
   | 'readme' | 'setup_guidance' | 'run_guidance' | 'test_guidance' | 'ci_workflow'
   | 'automated_tests' | 'environment_guidance' | 'deployment_guidance' | 'dependency_lock'
-  | 'security_guidance' | 'support_guidance' | 'architecture_guidance' | 'limitations_guidance';
+  | 'security_guidance' | 'support_guidance' | 'architecture_guidance' | 'limitations_guidance'
+  | 'workflow_permissions' | 'action_pinning';
 
 export interface CheckResult { id: CheckId; severity: Severity; result: Result; evidence: string; }
 export interface ScanReport {
