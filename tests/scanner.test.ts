@@ -277,3 +277,28 @@ jobs:
   assert.equal(await workflowSecurityResult(workflow, 'action_pinning'), 'FAIL');
 });
 
+
+
+test('workflow permissions check rejects job-level write-all overriding a top-level read boundary', async () => {
+  const workflow = `on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps: []
+`;
+  assert.equal(await workflowSecurityResult(workflow, 'workflow_permissions'), 'FAIL');
+});
+
+test('workflow permissions check rejects malformed jobs even with top-level permissions', async () => {
+  const workflow = `on: [push]
+permissions:
+  contents: read
+jobs:
+  test: not-a-mapping
+`;
+  assert.equal(await workflowSecurityResult(workflow, 'workflow_permissions'), 'FAIL');
+});
+
