@@ -8,7 +8,7 @@ Handoffs fail when essential operational knowledge is implicit. This action make
 
 ## What it checks
 
-Required checks cover a root README, setup/run/test guidance, CI workflow, conventional test evidence, environment guidance, and deployment guidance. Recommended checks cover lockfiles where applicable plus security, support, architecture, and limitations guidance. See [the full check rules](docs/CHECKS.md).
+Required checks cover a root README, setup/run/test guidance, CI workflow, conventional test evidence, environment guidance, and deployment guidance. Recommended checks cover lockfiles where applicable plus security, support, architecture, and limitations guidance. Two opt-in workflow-security checks are also available: explicit GitHub Actions permissions and immutable external `uses:` references. They are not enabled by default, so upgrading does not silently change existing readiness status. See [the full check rules](docs/CHECKS.md).
 
 ## Quick start
 
@@ -40,10 +40,10 @@ Optional `.delivery-readiness.yml` supports only check placement:
 ```yaml
 version: 1
 required_checks: [readme, setup_guidance]
-recommended_checks: [security_guidance]
+recommended_checks: [security_guidance, workflow_permissions, action_pinning]
 ```
 
-Unknown IDs and duplicated placement are errors. An empty `required_checks` is allowed, but means readiness cannot become `NOT_READY`; use it deliberately. Inputs are `mode`, `config-path`, and `report-path`.
+Unknown IDs and duplicated placement are errors. An empty `required_checks` is allowed, but means readiness cannot become `NOT_READY`; use it deliberately. `workflow_permissions` and `action_pinning` are optional checks that can be placed in either list. `workflow_permissions` requires an explicit non-`write-all` permission boundary at workflow level or on every job; it does not reject narrowly scoped intentional write permissions. `action_pinning` requires external actions/reusable workflows to use a full 40-character commit SHA and Docker actions to use a `sha256` digest; local `./` actions are allowed. Inputs are `mode`, `config-path`, and `report-path`.
 
 ## Outputs
 

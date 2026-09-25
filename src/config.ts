@@ -6,7 +6,8 @@ import path from 'node:path';
 
 export const REQUIRED_DEFAULT: CheckId[] = ['readme', 'setup_guidance', 'run_guidance', 'test_guidance', 'ci_workflow', 'automated_tests', 'environment_guidance', 'deployment_guidance'];
 export const RECOMMENDED_DEFAULT: CheckId[] = ['dependency_lock', 'security_guidance', 'support_guidance', 'architecture_guidance', 'limitations_guidance'];
-export const ALL_CHECKS = new Set<CheckId>([...REQUIRED_DEFAULT, ...RECOMMENDED_DEFAULT]);
+export const OPTIONAL_CHECKS: CheckId[] = ['workflow_permissions', 'action_pinning'];
+export const ALL_CHECKS = new Set<CheckId>([...REQUIRED_DEFAULT, ...RECOMMENDED_DEFAULT, ...OPTIONAL_CHECKS]);
 
 function checkList(value: unknown, key: string): CheckId[] {
   if (!Array.isArray(value) || !value.every((x) => typeof x === 'string')) throw new Error(`${key} must be an array of known check IDs.`);

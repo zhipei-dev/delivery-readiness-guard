@@ -2,7 +2,9 @@
 
 Required: `readme`, `setup_guidance`, `run_guidance`, `test_guidance`, `ci_workflow`, `automated_tests`, `environment_guidance`, `deployment_guidance`.
 
-Recommended: `dependency_lock`, `security_guidance`, `support_guidance`, `architecture_guidance`, `limitations_guidance`.
+Recommended by default: `dependency_lock`, `security_guidance`, `support_guidance`, `architecture_guidance`, `limitations_guidance`.
+
+Opt-in only: `workflow_permissions`, `action_pinning`. They are recognized configuration IDs but are deliberately excluded from default scoring so an upgrade does not change existing readiness status without an explicit repository decision.
 
 Guidance checks look for meaningful Markdown headings in README or docs-like Markdown, not isolated keywords. Setup, run, and test guidance require check-specific command evidence in a fenced code block within the same Markdown section; commands elsewhere in the document do not count. Setup recognizes `setup`, `installation`, `getting started`, `quick start`, and `quickstart` headings with install/bootstrap commands such as `npm ci`, `dotnet restore`, or Maven verification. Run recognizes `run`, `usage`, `development`, `quick start`, and `quickstart` with explicit launch commands such as `npm run dev`, `dotnet run`, or `./mvnw spring-boot:run`. Test recognizes `test`, `testing`, `validation`, `verification`, `browser validation`, `verified local evidence`, `quick start`, and `quickstart` only with test/verification commands such as `npm test`, `npm run test:e2e`, `dotnet test`, or Maven `test`/`verify`. CI requires a YAML file under `.github/workflows`. Tests use conventional JS/TS, Python, .NET, Java, Go, and Rust test paths/names without running them. Environment evidence accepts `.env.example`, `.env.sample`, or `.env.template`; deployment accepts `DEPLOYMENT.md`, runbook/handoff files, or a relevant heading. Standard files such as `SECURITY.md` and `SUPPORT.md` satisfy their matching recommended checks.
 

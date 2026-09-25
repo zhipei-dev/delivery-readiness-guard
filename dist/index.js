@@ -40041,7 +40041,8 @@ var dist = __nccwpck_require__(8815);
 
 const REQUIRED_DEFAULT = ['readme', 'setup_guidance', 'run_guidance', 'test_guidance', 'ci_workflow', 'automated_tests', 'environment_guidance', 'deployment_guidance'];
 const RECOMMENDED_DEFAULT = ['dependency_lock', 'security_guidance', 'support_guidance', 'architecture_guidance', 'limitations_guidance'];
-const ALL_CHECKS = new Set([...REQUIRED_DEFAULT, ...RECOMMENDED_DEFAULT]);
+const OPTIONAL_CHECKS = ['workflow_permissions', 'action_pinning'];
+const ALL_CHECKS = new Set([...REQUIRED_DEFAULT, ...RECOMMENDED_DEFAULT, ...OPTIONAL_CHECKS]);
 function checkList(value, key) {
     if (!Array.isArray(value) || !value.every((x) => typeof x === 'string'))
         throw new Error(`${key} must be an array of known check IDs.`);
@@ -40083,7 +40084,120 @@ async function loadConfig(workspace, configPath) {
     return { required, recommended };
 }
 
+;// CONCATENATED MODULE: ./lib/src/workflow-security.js
+
+const workflowPaths = (fs) => fs.files.filter((file) => /^\.github\/workflows\/[^/]+\.ya?ml$/i.test(file));
+function mapping(value) {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+        ? value
+        : undefined;
+}
+async function parsedWorkflow(fs, file) {
+    const text = await fs.readText(file);
+    if (text === undefined)
+        return undefined;
+    try {
+        return mapping((0,dist/* parse */.qg)(text));
+    }
+    catch {
+        return undefined;
+    }
+}
+function permissionBoundary(value) {
+    if (value === 'read-all')
+        return 'EXPLICIT';
+    if (value === 'write-all')
+        return 'WRITE_ALL';
+    if (mapping(value))
+        return 'EXPLICIT';
+    return 'INVALID';
+}
+async function workflowPermissionsCheck(fs) {
+    const files = workflowPaths(fs);
+    if (files.length === 0)
+        return { result: 'NOT_APPLICABLE', evidence: 'No GitHub Actions workflow YAML found' };
+    for (const file of files) {
+        const workflow = await parsedWorkflow(fs, file);
+        if (!workflow)
+            return { result: 'FAIL', evidence: `${file}: unreadable or invalid workflow YAML` };
+        if (Object.prototype.hasOwnProperty.call(workflow, 'permissions')) {
+            const boundary = permissionBoundary(workflow.permissions);
+            if (boundary === 'WRITE_ALL')
+                return { result: 'FAIL', evidence: `${file}: top-level permissions uses write-all` };
+            if (boundary !== 'EXPLICIT')
+                return { result: 'FAIL', evidence: `${file}: invalid explicit permissions declaration` };
+            continue;
+        }
+        const jobs = mapping(workflow.jobs);
+        if (!jobs || Object.keys(jobs).length === 0) {
+            return { result: 'FAIL', evidence: `${file}: no top-level permissions and no jobs to define job-level permissions` };
+        }
+        for (const [jobName, rawJob] of Object.entries(jobs)) {
+            const job = mapping(rawJob);
+            if (!job || !Object.prototype.hasOwnProperty.call(job, 'permissions')) {
+                return { result: 'FAIL', evidence: `${file}: job ${jobName} has no explicit permissions` };
+            }
+            const boundary = permissionBoundary(job.permissions);
+            if (boundary === 'WRITE_ALL')
+                return { result: 'FAIL', evidence: `${file}: job ${jobName} uses write-all` };
+            if (boundary !== 'EXPLICIT')
+                return { result: 'FAIL', evidence: `${file}: job ${jobName} has invalid permissions` };
+        }
+    }
+    return { result: 'PASS', evidence: `${files.length} workflow(s) declare explicit non-write-all permissions` };
+}
+function collectUses(value, found = []) {
+    if (Array.isArray(value)) {
+        for (const item of value)
+            collectUses(item, found);
+        return found;
+    }
+    const object = mapping(value);
+    if (!object)
+        return found;
+    for (const [key, child] of Object.entries(object)) {
+        if (key === 'uses')
+            found.push(child);
+        collectUses(child, found);
+    }
+    return found;
+}
+function isImmutableUse(value) {
+    if (typeof value !== 'string')
+        return false;
+    const use = value.trim();
+    if (use.startsWith('./'))
+        return true;
+    if (use.startsWith('docker://'))
+        return /^docker:\/\/[^\s@]+@sha256:[0-9a-f]{64}$/i.test(use);
+    return /^\S+@[0-9a-f]{40}$/i.test(use);
+}
+async function actionPinningCheck(fs) {
+    const files = workflowPaths(fs);
+    if (files.length === 0)
+        return { result: 'NOT_APPLICABLE', evidence: 'No GitHub Actions workflow YAML found' };
+    let externalCount = 0;
+    for (const file of files) {
+        const workflow = await parsedWorkflow(fs, file);
+        if (!workflow)
+            return { result: 'FAIL', evidence: `${file}: unreadable or invalid workflow YAML` };
+        for (const use of collectUses(workflow)) {
+            if (typeof use === 'string' && use.trim().startsWith('./'))
+                continue;
+            externalCount += 1;
+            if (!isImmutableUse(use)) {
+                const shown = typeof use === 'string' ? use.trim().slice(0, 160) : '<non-string uses value>';
+                return { result: 'FAIL', evidence: `${file}: mutable action reference ${shown}` };
+            }
+        }
+    }
+    if (externalCount === 0)
+        return { result: 'NOT_APPLICABLE', evidence: 'No external action references found' };
+    return { result: 'PASS', evidence: `${externalCount} external action reference(s) pinned to immutable digests/commits` };
+}
+
 ;// CONCATENATED MODULE: ./lib/src/checks.js
+
 const markdown = (fs) => fs.files.filter((file) => /(^|\/)(readme|[^/]+)\.md$/i.test(file));
 const standard = {
     security_guidance: /(^|\/)security\.md$/i,
@@ -40213,6 +40327,10 @@ async function runCheck(fs, id) {
     }
     if (id === 'dependency_lock')
         return dependencyLock(fs);
+    if (id === 'workflow_permissions')
+        return workflowPermissionsCheck(fs);
+    if (id === 'action_pinning')
+        return actionPinningCheck(fs);
     const evidence = (standard[id] && find(fs, standard[id])) ?? await hasSection(fs, id);
     return evidence ? { result: 'PASS', evidence } : { result: 'FAIL', evidence: `No ${id.replace('_', ' ')} file or guidance heading` };
 }

@@ -159,3 +159,121 @@ test('report JSON and report/enforce semantics', async () => {
   assert.equal(shouldFail('enforce', 'NOT_READY'), true);
   assert.equal(shouldFail('enforce', 'READY'), false);
 });
+
+
+async function workflowSecurityResult(
+  workflow: string,
+  id: 'workflow_permissions' | 'action_pinning',
+): Promise<string | undefined> {
+  const workspace = await tempWorkspace();
+  await mkdir(path.join(workspace, '.github', 'workflows'), { recursive: true });
+  await writeFile(
+    path.join(workspace, '.delivery-readiness.yml'),
+    `version: 1\nrequired_checks: []\nrecommended_checks: [${id}]\n`,
+  );
+  await writeFile(path.join(workspace, '.github', 'workflows', 'ci.yml'), workflow);
+  return (await scan(workspace)).checks.find((check) => check.id === id)?.result;
+}
+
+test('workflow permissions check rejects implicit permissions', async () => {
+  const workflow = `on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps: []
+`;
+  assert.equal(await workflowSecurityResult(workflow, 'workflow_permissions'), 'FAIL');
+});
+
+test('workflow permissions check accepts explicit read boundary', async () => {
+  const workflow = `on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps: []
+`;
+  assert.equal(await workflowSecurityResult(workflow, 'workflow_permissions'), 'PASS');
+});
+
+test('workflow permissions check rejects write-all', async () => {
+  const workflow = `on: [push]
+permissions: write-all
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps: []
+`;
+  assert.equal(await workflowSecurityResult(workflow, 'workflow_permissions'), 'FAIL');
+});
+
+test('workflow permissions check accepts explicit job-level boundaries', async () => {
+  const workflow = `on: [push]
+jobs:
+  test:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps: []
+`;
+  assert.equal(await workflowSecurityResult(workflow, 'workflow_permissions'), 'PASS');
+});
+
+test('action pinning accepts immutable external SHA and local actions', async () => {
+  const sha = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  const workflow = `on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@${sha}
+      - uses: ./.github/actions/local
+`;
+  assert.equal(await workflowSecurityResult(workflow, 'action_pinning'), 'PASS');
+});
+
+test('action pinning rejects mutable tags', async () => {
+  const workflow = `on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+`;
+  assert.equal(await workflowSecurityResult(workflow, 'action_pinning'), 'FAIL');
+});
+
+test('action pinning accepts immutable Docker digests', async () => {
+  const digest = 'b'.repeat(64);
+  const workflow = `on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker://alpine@sha256:${digest}
+`;
+  assert.equal(await workflowSecurityResult(workflow, 'action_pinning'), 'PASS');
+});
+
+
+
+test('action pinning rejects Docker tags and non-digest refs', async () => {
+  const workflow = `on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker://alpine@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+`;
+  assert.equal(await workflowSecurityResult(workflow, 'action_pinning'), 'FAIL');
+});
+
