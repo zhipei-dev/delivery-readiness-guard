@@ -39926,6 +39926,7 @@ const external_node_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(impo
 
 const MAX_ENTRIES = 10_000;
 const MAX_TEXT_BYTES = 1024 * 1024;
+const FIXTURE_DIRECTORY = /(^|\/)(tests?|__tests__)\/fixtures$/i;
 const IGNORED_DIRECTORIES = new Set([
     '.git',
     'node_modules',
@@ -39984,13 +39985,13 @@ async function createSafeFs(workspace) {
     const walk = async (absolute) => {
         const children = await (0,promises_namespaceObject.readdir)(absolute, { withFileTypes: true });
         for (const child of children) {
-            if (child.isDirectory() && IGNORED_DIRECTORIES.has(child.name))
+            const target = external_node_path_namespaceObject.join(absolute, child.name);
+            const relative = external_node_path_namespaceObject.relative(root, target).split(external_node_path_namespaceObject.sep).join('/');
+            if (child.isDirectory() && (IGNORED_DIRECTORIES.has(child.name) || FIXTURE_DIRECTORY.test(relative)))
                 continue;
             if (++entries > MAX_ENTRIES) {
                 throw new Error(`Workspace exceeds safe scan limit of ${MAX_ENTRIES} entries.`);
             }
-            const target = external_node_path_namespaceObject.join(absolute, child.name);
-            const relative = external_node_path_namespaceObject.relative(root, target).split(external_node_path_namespaceObject.sep).join('/');
             if (child.isSymbolicLink())
                 continue;
             if (child.isDirectory())
@@ -40206,7 +40207,8 @@ async function actionPinningCheck(fs) {
 
 ;// CONCATENATED MODULE: ./lib/src/checks.js
 
-const markdown = (fs) => fs.files.filter((file) => /(^|\/)(readme|[^/]+)\.md$/i.test(file));
+const nonGuidanceMarkdown = /^\.github\/(?:ISSUE_TEMPLATE\/|PULL_REQUEST_TEMPLATE(?:\.md|\/))/i;
+const markdown = (fs) => fs.files.filter((file) => /(^|\/)(readme|[^/]+)\.md$/i.test(file) && !nonGuidanceMarkdown.test(file));
 const standard = {
     security_guidance: /(^|\/)security\.md$/i,
     support_guidance: /(^|\/)support\.md$/i,

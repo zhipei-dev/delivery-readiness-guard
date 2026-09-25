@@ -1,7 +1,8 @@
 import type { CheckId, Result, SafeFs } from './types.js';
 import { actionPinningCheck, workflowPermissionsCheck } from './workflow-security.js';
 
-const markdown = (fs: SafeFs) => fs.files.filter((file) => /(^|\/)(readme|[^/]+)\.md$/i.test(file));
+const nonGuidanceMarkdown = /^\.github\/(?:ISSUE_TEMPLATE\/|PULL_REQUEST_TEMPLATE(?:\.md|\/))/i;
+const markdown = (fs: SafeFs) => fs.files.filter((file) => /(^|\/)(readme|[^/]+)\.md$/i.test(file) && !nonGuidanceMarkdown.test(file));
 const standard: Partial<Record<CheckId, RegExp>> = {
   security_guidance: /(^|\/)security\.md$/i,
   support_guidance: /(^|\/)support\.md$/i,

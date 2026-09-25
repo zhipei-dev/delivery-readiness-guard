@@ -1,4 +1,12 @@
 version: 1
+required_checks:
+  - readme
+  - setup_guidance
+  - test_guidance
+  - ci_workflow
+  - automated_tests
+  - environment_guidance
+  - deployment_guidance
 recommended_checks:
   - dependency_lock
   - security_guidance
