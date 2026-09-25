@@ -4,6 +4,7 @@ import type { SafeFs } from './types.js';
 
 const MAX_ENTRIES = 10_000;
 const MAX_TEXT_BYTES = 1024 * 1024;
+const FIXTURE_DIRECTORY = /(^|\/)(tests?|__tests__)\/fixtures$/i;
 const IGNORED_DIRECTORIES = new Set([
   '.git',
   'node_modules',
@@ -59,12 +60,12 @@ export async function createSafeFs(workspace: string): Promise<SafeFs> {
   const walk = async (absolute: string): Promise<void> => {
     const children = await readdir(absolute, { withFileTypes: true });
     for (const child of children) {
-      if (child.isDirectory() && IGNORED_DIRECTORIES.has(child.name)) continue;
+      const target = path.join(absolute, child.name);
+      const relative = path.relative(root, target).split(path.sep).join('/');
+      if (child.isDirectory() && (IGNORED_DIRECTORIES.has(child.name) || FIXTURE_DIRECTORY.test(relative))) continue;
       if (++entries > MAX_ENTRIES) {
         throw new Error(`Workspace exceeds safe scan limit of ${MAX_ENTRIES} entries.`);
       }
-      const target = path.join(absolute, child.name);
-      const relative = path.relative(root, target).split(path.sep).join('/');
       if (child.isSymbolicLink()) continue;
       if (child.isDirectory()) await walk(target);
       else if (child.isFile()) files.push(relative);

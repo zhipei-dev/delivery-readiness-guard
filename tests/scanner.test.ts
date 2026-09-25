@@ -302,3 +302,28 @@ jobs:
   assert.equal(await workflowSecurityResult(workflow, 'workflow_permissions'), 'FAIL');
 });
 
+
+
+test('conventional test fixture directories do not provide readiness evidence', async () => {
+  const workspace = await tempWorkspace();
+  await mkdir(path.join(workspace, 'tests', 'fixtures', 'sample', '.github', 'workflows'), { recursive: true });
+  await mkdir(path.join(workspace, 'tests', 'fixtures', 'sample', 'tests'), { recursive: true });
+  await writeFile(path.join(workspace, '.delivery-readiness.yml'), 'version: 1\nrequired_checks: [ci_workflow, automated_tests, environment_guidance]\nrecommended_checks: []\n');
+  await writeFile(path.join(workspace, 'tests', 'fixtures', 'sample', '.github', 'workflows', 'ci.yml'), 'name: fixture\n');
+  await writeFile(path.join(workspace, 'tests', 'fixtures', 'sample', 'tests', 'example.test.ts'), 'export {};\n');
+  await writeFile(path.join(workspace, 'tests', 'fixtures', 'sample', '.env.example'), 'TOKEN=x\n');
+  const report = await scan(workspace);
+  assert.equal(report.status, 'NOT_READY');
+  for (const id of ['ci_workflow', 'automated_tests', 'environment_guidance']) {
+    assert.equal(report.checks.find((check) => check.id === id)?.result, 'FAIL');
+  }
+});
+
+test('issue templates do not satisfy guidance checks', async () => {
+  const workspace = await tempWorkspace();
+  await mkdir(path.join(workspace, '.github', 'ISSUE_TEMPLATE'), { recursive: true });
+  await writeFile(path.join(workspace, '.delivery-readiness.yml'), 'version: 1\nrequired_checks: [environment_guidance]\nrecommended_checks: []\n');
+  await writeFile(path.join(workspace, '.github', 'ISSUE_TEMPLATE', 'bug.md'), '# Environment\nDescribe your environment.\n');
+  assert.equal((await scan(workspace)).status, 'NOT_READY');
+});
+
