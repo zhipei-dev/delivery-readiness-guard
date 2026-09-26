@@ -1,5 +1,7 @@
 # Delivery Readiness Guard
 
+**[Install from GitHub Marketplace](https://github.com/marketplace/actions/delivery-readiness-guard)** · **[Latest release](https://github.com/zhipei-dev/delivery-readiness-guard/releases/latest)**
+
 A free, deterministic GitHub Action that checks whether a repository has the basic evidence needed for a client, incoming developer, or operations-team handoff. It is not an AI reviewer, secret scanner, or generic health score.
 
 ## Why
