@@ -105,6 +105,8 @@ The issue templates ask for a minimal public or redacted reproduction. Do not in
 
 [Open an issue](https://github.com/zhipei-dev/delivery-readiness-guard/issues/new/choose).
 
+For code contributions, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Roadmap
 
 Future releases may refine deterministic ecosystem evidence and documentation heuristics while retaining the action's local, auditable scope.
