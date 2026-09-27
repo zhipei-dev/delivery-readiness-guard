@@ -35,6 +35,19 @@ jobs:
 
 The pinned Delivery Readiness Guard SHA above is the current `v1.1.0` / floating `v1` release. If you prefer automatic major-line updates, `zhipei-dev/delivery-readiness-guard@v1` is supported; repositories that enable the optional `action_pinning` check should keep the immutable SHA form.
 
+## Public dogfood proof
+
+The v1.1.0 workflow-security checks are enabled in four public owner-maintained repositories:
+
+| Repository | Proof |
+| --- | --- |
+| [AI SaaS Integration Lab](https://github.com/zhipei-dev/ai-saas-integration-lab) | [Readiness config](https://github.com/zhipei-dev/ai-saas-integration-lab/blob/main/.delivery-readiness.yml) · [workflow](https://github.com/zhipei-dev/ai-saas-integration-lab/blob/main/.github/workflows/delivery-readiness.yml) |
+| [API Rescue Case Study](https://github.com/zhipei-dev/api-rescue-case-study) | [Readiness config](https://github.com/zhipei-dev/api-rescue-case-study/blob/main/.delivery-readiness.yml) · [workflow](https://github.com/zhipei-dev/api-rescue-case-study/blob/main/.github/workflows/delivery-readiness.yml) |
+| [Operations Reconciliation Toolkit](https://github.com/zhipei-dev/ops-reconciliation-toolkit) | [Readiness config](https://github.com/zhipei-dev/ops-reconciliation-toolkit/blob/main/.delivery-readiness.yml) · [workflow](https://github.com/zhipei-dev/ops-reconciliation-toolkit/blob/main/.github/workflows/delivery-readiness.yml) |
+| [Business Operations Mini Platform](https://github.com/zhipei-dev/business-ops-mini-platform) | [Readiness config](https://github.com/zhipei-dev/business-ops-mini-platform/blob/main/.delivery-readiness.yml) · [workflow](https://github.com/zhipei-dev/business-ops-mini-platform/blob/main/.github/workflows/delivery-readiness.yml) |
+
+All four opt into `workflow_permissions` and `action_pinning`, use explicit read-only workflow permissions for these checks, and pin external Actions to immutable commit SHAs. This is public dogfooding maintained by the same owner, not a claim of third-party adoption.
+
 ## Development setup
 
 Development requires Node.js 24. Install the pinned dependency graph with:
