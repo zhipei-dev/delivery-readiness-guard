@@ -14,6 +14,8 @@ Required checks cover a root README, setup/run/test guidance, CI workflow, conve
 
 ## Quick start
 
+Recommended immutable form:
+
 ```yaml
 name: delivery-readiness
 on: [pull_request]
@@ -23,13 +25,15 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: zhipei-dev/delivery-readiness-guard@v1
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: zhipei-dev/delivery-readiness-guard@462b37c452955523ab045221f0bb7ac284cf5d83 # v1
         with:
           mode: report
 ```
 
 `contents: read` is the minimal permission. The JSON report is written in the workspace and a concise result table is added to the job summary.
+
+The pinned Delivery Readiness Guard SHA above is the current `v1.1.0` / floating `v1` release. If you prefer automatic major-line updates, `zhipei-dev/delivery-readiness-guard@v1` is supported; repositories that enable the optional `action_pinning` check should keep the immutable SHA form.
 
 ## Development setup
 
